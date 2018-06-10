@@ -1,0 +1,103 @@
+#include "Uart.h"
+
+#define MAX_COM_NUM 2
+#define READ_BUF_SIZE 256
+static int fd = -1;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+/*
+ * Class:     Uart
+ * Method:    openDev
+ * Signature: (I)I
+ */
+JNIEXPORT jint JNICALL Java_Uart_openDev
+  (JNIEnv *env , jclass cls, jint num)
+  {
+	  const char* dev[] = {"dev/ttyHSL0","dev/ttyHSL1 "};
+	  if(num <= 0 || num > MAX_COM_NUM){
+		  return -1;
+	  }
+	  fd = open(dev[num-1],O_RDWR|O_NOCTTY);
+	  if(fd < 0){
+		  return -1;
+	  }
+	  return fd;
+  }
+
+/*
+ * Class:     Uart
+ * Method:    closeDev
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_Uart_closeDev
+  (JNIEnv *env , jclass cls)
+  {
+	if(fd > 0)
+		close(fd);
+	return 0;
+  }
+
+/*
+ * Class:     Uart
+ * Method:    writeBuf
+ * Signature: (ILjava/lang/String;I)I
+ */
+JNIEXPORT jint JNICALL Java_Uart_writeBuf
+  (JNIEnv *env, jclass cls, jint fd, jstring str, jint len)
+  {
+	  int ret;
+	  const char * buf = (*env)->GetStringUTFChars(env,str,0);
+	  ret = write(fd,buf,len);
+	  (*env)->ReleaseStringUTFChars(env,str,0);
+	  return ret;
+  }
+
+/*
+ * Class:     Uart
+ * Method:    readBuf
+ * Signature: (I)I
+ */
+JNIEXPORT jstring JNICALL Java_Uart_readBuf
+  (JNIEnv * env, jclass cls, jint fd)
+  {
+	  int ret = 0;
+	  char buf[READ_BUF_SIZE];
+	  ret = read(fd,buf,READ_BUF_SIZE);
+	  if(ret <= 0)
+		  return NULL;
+	  return (*env)->NewStringUTF(env,buf);
+  }
+
+static JNINativeMethod meMethods[] = {
+	{"readBuf","(I)ILjava/lang/String;",(void *)Java_Uart_readBuf},
+	{"writeBuf","(ILjava/lang/String;I)I",(void *)Java_Uart_writeBuf},
+	{"closeDev","(I)I",(void *)Java_Uart_closeDev},
+	{"openDev","(I)I",(void *)Java_Uart_openDev},
+};
+
+JNIEXPORT jint JNICALL
+JNI_OnLoad(JavaVM *jvm, void *reserved)
+{
+	JNIEnv *env; jclass cls;
+	
+	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_4)) {
+		return JNI_ERR; /* JNI version not supported */
+	}
+	cls = (*env)->FindClass(env, "com/jw/uart_jni");
+	if (cls == NULL) {
+		return JNI_ERR;
+	}
+	if((*env)->RegisterNatives(env,cls,methods,sizeof(meMethods)/sizeof(meMethods[0])) < 0)
+		return JNI_ERR;
+	
+	return JNI_VERSION_1_4;
+}
+ 
+#ifdef __cplusplus
+}
+#endif
+
+
+

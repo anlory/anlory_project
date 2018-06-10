@@ -1,0 +1,11 @@
+
+1.编写 led.java
+2.编译 javac led.java
+3.生成c头文件 javah led
+4.编写c文件
+编译C库：
+gcc led.c -fPIC -shared -I/usr/lib/jvm/java-7-openjdk-amd64/include/ -o libled.so 
+
+
+编译java：
+java -Djava.library.path=./ led
